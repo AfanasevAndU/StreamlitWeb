@@ -4,3 +4,5 @@ numpy
 pandas
 pytest
 flake8
+fastapi
+uvicorn
