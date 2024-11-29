@@ -1,33 +1,34 @@
-import streamlit as st
 import pickle
+from fastapi import FastAPI
+from pydantic import BaseModel
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
 
-# Загрузка модели и векторизатора
 with open('model.pkl', 'rb') as model_file:
     model = pickle.load(model_file)
 
 with open('vectorizer.pkl', 'rb') as vectorizer_file:
     vectorizer = pickle.load(vectorizer_file)
 
-# Функция для анализа тональности
-def predict_sentiment(text):
+app = FastAPI()
+
+def predict_sentiment(text: str) -> str:
     text_vec = vectorizer.transform([text])
     prediction = model.predict(text_vec)
     return "Positive" if prediction[0] == 1 else "Negative"
 
-# Интерфейс Streamlit
-st.title("Анализ тональности текста")
+class TextRequest(BaseModel):
+    text: str
 
-# Ввод текста
-user_input = st.text_area("Введите текст для анализа:", "")
+@app.get("/predict/")
+async def predict(text: str):
+    sentiment = predict_sentiment(text)
+    return {"sentiment": sentiment}
 
-if st.button("Анализировать"):
-    if user_input.strip():
-        sentiment = predict_sentiment(user_input)
-        st.write(f"**Тональность текста:** {sentiment}")
-    else:
-        st.warning("Пожалуйста, введите текст.")
+@app.get("/predict/{text}")
+async def predict(text: str):
+    sentiment = predict_sentiment(text)
+    return {"sentiment": sentiment}
 
-# Информация о модели
-st.sidebar.header("Информация о модели")
-st.sidebar.write("Модель обучена на IMDB Movie Reviews Dataset.")
-st.sidebar.write(f"Алгоритм: Logistic Regression")
+
+
